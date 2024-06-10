@@ -1,20 +1,73 @@
+import { useMemo, useState,  } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { useAuthContext } from "../context/AuthContext"
+import { useFirestoreContext } from "../context/FireStoreContext";
+
+const LogIn = () => {
+  const {login, currentUser } = useAuthContext() 
+  return (
+   !currentUser && 
+   <button type="button" className="btn btn-warning" onClick={login}>
+      Login
+    </button>
+  );
+};
+
+const LogOut = () => {
+  const {logout, currentUser } = useAuthContext() 
+   return (
+    !!currentUser && 
+    <button type="button" className="btn btn-danger" onClick={logout}>
+       Logout
+     </button>
+   );
+ };
+
 function Navigation() {
+  const { currentUser } = useAuthContext() 
+  const { pathname } = useLocation()
   return(
     <ul className="navbar-nav me-auto mb-2 mb-lg-0">
     {/* remove all links except HOME */}
     <li className="nav-item">
-      <a className="nav-link active" aria-current="page" href="#">
+      <Link className={`nav-link ${pathname === "/" ? "active":""}`} aria-current="page" to="/">
         Home
-      </a>
+      </Link>
     </li>
+    {currentUser && 
+      <li className="nav-item">
+        <Link className={`nav-link ${pathname === "/stockimages" ? "active":""}`} aria-current="page" to="stocks" >
+          My Stocks
+        </Link>
+      </li>
+    }
+    {currentUser && 
+      <li className="nav-item">
+        <Link className={`nav-link ${pathname === "/profile" ? "active":""}`} aria-current="page" to="profile" >
+          Profile
+        </Link>
+      </li>
+    }
   </ul>
   )
 }
 
 function SearchForm() {
+  const [text, search] = useState(null)
+  const { filterItems: filter } = useFirestoreContext()
+  const handleOnChange = e => {
+    search(e.target.value)
+    filter(e.target.value)
+  }
+  const handleOnSubmit = e => {
+    e.preventDefault()
+    filter(text)
+    console.log(`searching ${text}`)
+  }
   return(
-    <form className="d-flex">
+    <form className="d-flex" onSubmit={handleOnSubmit}>
     <input
+    onChange={handleOnChange}
       className="form-control me-2"
       type="search"
       placeholder="Search"
@@ -28,6 +81,17 @@ function SearchForm() {
 }
 
 function Dropdown() {
+  const { currentUser } = useAuthContext() 
+
+  const username = useMemo(() => {
+    return currentUser?.displayName || "Profile"
+  }, [currentUser])
+
+  const avatar = useMemo(() => {
+    return !!currentUser ?
+    <img className="avatar" src={currentUser?.photoURL} alt={currentUser?.displayName } width="34" height="34"/> :
+     "Login"
+  }, [currentUser])
   return( <ul className="navbar-nav mb-2 mb-lg-0">
   {" "}
   {/* remove ms-auto */}
@@ -39,15 +103,24 @@ function Dropdown() {
       role="button"
       data-bs-toggle="dropdown"
       aria-expanded="false"
-    >
-      Login
+    > 
+    {avatar}
     </a>
-    <ul className="dropdown-menu" aria-labelledby="navbarDropdown">
-      <li>
-        <a className="dropdown-item text-center" href="#">
-          Profile
-        </a>
+    <ul className="dropdown-menu" aria-labelledby="navbarDropdown" style={{
+        left: "auto", 
+        right: "0"
+    }}>
+      {currentUser && <li>
+        <Link to="/profile" className="dropdown-item text-center">
+          {username}
+        </Link>
       </li>
+      }
+      <li><hr className="dropdown divider"/></li>
+      <div className="d-flex justify-content-center">
+        <LogIn />
+        <LogOut />
+      </div>
     </ul>
   </li>
 </ul>)
